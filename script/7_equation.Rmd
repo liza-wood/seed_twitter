@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+author: "Liza Wood"
+date: "2/15/2021"
+output:
+  pdf_document: default
+
+---
+```{r}
+library(tidytext)
+library(data.table)
+library(dplyr)
+library(topicmodels)
+library(textstem)
+library(ldatuning)
+library(ggplot2)
+library(stringr)
+library(lme4)
+library(equatiomatic)
+```
+
+```{r, include = F}
+tm <- readRDS("../lda_k50_a.1.RDS")
+nodes <- fread("~/Box/seed_twitter/data/1.22.21.ASTA.node.names.ag.ids.location.unfinished.csv")
+topics <- tidy(tm, matrix = "beta")
+# See these are probabilities -- all words have some percentage of being in a topic, and add up to one
+topics %>% group_by(topic) %>% summarize(total = sum(beta))
+
+users <- tidy(tm, matrix = "gamma") 
+users %>% group_by(document) %>% summarize(total = sum(gamma))
+
+```
+
+```{r}
+# MODEL-----
+#combine users/gamma with the user data, then run a model 
+
+topic18 <- users %>% filter(topic == 18, document != "")
+df.18 <- left_join(topic18, nodes, by = c("document" = "screen_name"))
+
+fit18 <- lmer(topic18$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.18)
+summary(fit18) # community explains most of the variance; fixef only .029
+coef(fit18) # community 3, 4 and 6; europe; even across types
+ranef(fit18)
+
+topic19 <- users %>% filter(topic == 19, document != "")
+df.19 <- left_join(topic19, nodes, by = c("document" = "screen_name"))
+
+fit19 <- lmer(topic19$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.19)
+summary(fit19) # community explaining much more of the variance here; a little more populat fixef .09
+coef(fit19) # media much more likely to be talking about this kind of cc; community 4 and 6; northeast and west
+ranef(fit19)
+
+topic38 <- users %>% filter(topic == 38, document != "")
+df.38 <- left_join(topic38, nodes, by = c("document" = "screen_name"))
+
+fit38 <- lmer(topic38$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.38)
+summary(fit38) # int is .02; community still most explanatory, then location then id
+coef(fit38) # community 11
+ranef(fit38)
+```
+
+```{r, run = F}
+#extract_eq(fit18)
+```
+$$
+\begin{aligned}
+  \operatorname{climatetopic}_{i}  &\sim N \left(\alpha_{j[i],k[i],l[i]}, \sigma^2 \right) \\
+    \alpha_{j}  &\sim N \left(\mu_{\alpha_{j}}, \sigma^2_{\alpha_{j}} \right)
+    \text{, for role j = 1,} \dots \text{,J} \\
+    \alpha_{k}  &\sim N \left(\mu_{\alpha_{k}}, \sigma^2_{\alpha_{k}} \right)
+    \text{, for community k = 1,} \dots \text{,K} \\
+    \alpha_{l}  &\sim N \left(\mu_{\alpha_{l}}, \sigma^2_{\alpha_{l}} \right)
+    \text{, for location l = 1,} \dots \text{,L}
+\end{aligned}
+$$

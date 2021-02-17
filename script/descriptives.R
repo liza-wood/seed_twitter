@@ -22,18 +22,14 @@ library(reshape2)
 
 # If you are reading in an edgelist (two columns), add the matrix.type argument
 edge.list <- read.csv("data/6.18.ASTAretweetandmention.edgelist.recent.csv", header = TRUE, na.strings = "NA")
-net.edgelist <- network(edge.list, matrix.type="edgelist")
-net.edgelist
-## You can also specify edge attributes when you import -- this can be weights of binary attributes
-edge.list.short <- edge.list %>% select(Source, Target, date, stripped_text, climate_tweet, breeding_tweet)
-net.edgelist.large <- network(edge.list.short, matrix.type="edgelist", ignore.eval=F, names.eval=c("date", "text", "climate_tweet", "breeding_tweet"))
+edge.list <- edge.list %>% select(Source, Target, date, stripped_text, climate_tweet, breeding_tweet)
+
+net.edgelist.large <- network(edge.list, matrix.type="edgelist", ignore.eval=F, names.eval=c("date", "text", "climate_tweet", "breeding_tweet"))
 
 # Because this is a massive edgelist, I am going to randomly take 10000 of them
-edge.attr.abbr <- edge.list.short[sample(nrow(edge.list.short), 10000), ]
+edge.list.short <- edge.list[sample(nrow(edge.list), 10000), ]
 ## Much smaller network
-net.edgelist.attr <- network(edge.attr.abbr, matrix.type="edgelist", ignore.eval=F, names.eval=c("date", "text", "climate_tweet", "breeding_tweet"))
-net.edgelist.attr
-net.edgelist.attr %e% "climate_tweet"
+net.edgelist.short <- network(edge.attr.short, matrix.type="edgelist", ignore.eval=F, names.eval=c("date", "text", "climate_tweet", "breeding_tweet"))
 
 ## Generally, network objects looks like a list in the global environment (typeof is list) but if you explore it is a network object (class is network)
 ## Note: you don't need to it be a network object unless you are going to be doing ERGMs
@@ -46,13 +42,12 @@ node.info <- read.csv("data/6.18.ASTAretweetandmention.nodelist.recent.csv", hea
 nodes.info <- unique(node.info[c("Id", "Label")])
 
 # For this sample, because I made the sample smaller
-node.info <- edge.attr.abbr %>% select(Target, Source) %>%  mutate(row = 1:nrow(edge.attr.abbr)) %>% melt(id.vars = "row", var = "name") %>% select(value) %>% unique() %>% rename("name" = "value")
-
+node.info.short <- edge.list.short %>% select(Target, Source) %>%  mutate(row = 1:nrow(edge.attr.abbr)) %>% melt(id.vars = "row", var = "name") %>% select(value) %>% unique() %>% rename("name" = "value")
 
 ## PLOTTING FOR A QUICK VIEW ----
 
 # Rename just to make this easier
-net <- net.edgelist.attr
+net <- net.edgelist.short
 
 # Simply, you can just plot to see default
 plot(net)
@@ -109,7 +104,7 @@ gtrans(net)
 #clique.census(net) -- counts up the cliques, but this is a long output
 
 ## Individual vertex routines
-net <- net.edgelist.attr
+net <- net.edgelist.short
 ?degree
 degree(net) -> deg #default is total, also called "freeman"
 degree(net, cmode="indegree") -> ideg # in degree
@@ -233,7 +228,7 @@ library(igraph)
 
 ## READING in Data
 # Data from an edgelist can be read in, and converted into a network object, with node attributes, all in one function
-edges <- edge.attr.abbr # This is an edgelist with attributes
+edges <- edge.list # This is an edgelist with attributes
 nodes <- node.info
 head(edges)
 
@@ -266,7 +261,7 @@ V(net)$size <- deg/6
 # The labels are currently node IDs, Setting them to NA will render no labels:
 #V(net)$label <- NA
 # Or set only some labels
-V(net)$label <- unname(ifelse(degree(net)[V(net)] > 50, names(V(net)), "")) 
+V(net)$label <- unname(ifelse(degree(net)[V(net)] > 30, names(V(net)), "")) 
 V(net)$label.color="black"
 
 # Arrows
@@ -280,18 +275,21 @@ plot(net, displayisolates=FALSE)
 # Trying to reduce side -- removing those with less than 5 degrees
 v.remove <- V(net)[which(degree(net) < 5)]
 v.remove <- V(net)[which(degree(net, mode="in") < 4 & degree(net, mode="out") < 4)]
+
 net2 <- delete.vertices(net, v.remove)
 #graph_attr(net2, "layout") <- layout_with_lgl
 plot(net2, displayisolates=FALSE)
 
 
-
 # COMMUNITIES
 clp <- cluster_optimal(net2)
 class(clp)
-plot(clp, net)
+plot(clp, net2)
 
-
+# We can also plot the communities without relying on their built-in plot:
+V(net2)$community <- clp$membership
+colrs <- adjustcolor( c("gray50", "tomato", "gold", "yellowgreen"), alpha=.6)
+plot(net2, vertex.color=colrs[V(net2)$community])
 
 # LATER NOTES
 
