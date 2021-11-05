@@ -67,7 +67,7 @@ topic_number <- FindTopicsNumber(c_dtm,
                 mc.cores = NA,
                 verbose = TRUE)
 saveRDS(topic_number, "topic_number.RDS")
-#topic_number <- readRDS("topic_number.RDS")
+topic_number <- readRDS("topic_number.RDS")
 FindTopicsNumber_plot(topic_number)
 
 png("topic_number.png", height = 5, width = 10, units = "in", res = 100)
@@ -79,109 +79,46 @@ dev.off()
 lda_k50_a.1 <- LDA(c_dtm, k = 50, control = list(alpha = .1))
 saveRDS(lda_k50_a.1, "lda_k50_a.1.RDS")
 
-topics_n(lda_k50_a.1, 5)
+tm <- readRDS("lda_k50_a.1.RDS")
 
+tm %>% filter()
+topics_n(tm, 10, c(1:50))
+topics <- tidy(tm, matrix = "beta")
+
+topics$keyword <- str_detect(topics$term, "climate.*|adapt.*|.*diversity")
+topic.ofinterest <- topics %>% filter(keyword == T, beta > 0.008)
+
+topics <- topics %>% filter(topic %in% c(16, 18, 19, 35, 47))
+users <- tidy(tm, matrix = "gamma")
+
+# Can look at the intersection of a user's words and assigned topics
+topics_n <- function(lda, n, topic.vector) {
+  tidy(lda, matrix = "beta") %>% 
+    filter(topic %in% topic.vector) %>% 
+    group_by(topic) %>% top_n(n, beta) %>%
+    ggplot(aes(x = reorder(term, beta), y = beta, fill = topic)) + #fill = term
+    geom_col() + coord_flip() + guides(fill = FALSE) +
+    scale_color_brewer() + 
+    facet_wrap(vars(topic), ncol = 5, scales = "free") +
+    theme_minimal(base_size = 12) +
+    scale_y_continuous(labels = c()) +
+    labs(title = "Top words by topic", 
+         x = "Word", y = "Beta")
+}
+
+
+
+topics_n(tm, 10, c(16, 18, 19, 35, 47))
+
+library(tidyverse)
+users.wide <- users %>% pivot_wider(id_cols = document, names_from = topic, values_from = gamma)
+colnames(users.wide) <- c("name", paste("topic", seq(1,(ncol(users.wide)-1),1), sep = ""))
+
+# Write to add on as an attribute for plotting in 8
+fwrite(users.wide, "~/Box/seed_twitter/data/users.wide.csv")
 
 # Take a look at beta probabilities for each topic
 #`sotu_topics` indicates the probability distribution of words over topics; `sotu_docs` indicates the proportion of each document (paragraph) attributed to each topic.
-tm <- readRDS("lda_k50_a.1.RDS")
-topics <- tidy(tm, matrix = "beta")
-# See these are probabilities -- all words have some percentage of being in a topic, and add up to one
-topics %>% group_by(topic) %>% summarize(total = sum(beta))
-
-top10words <- topics %>% 
-  group_by(topic) %>% 
-  arrange(desc(beta)) %>% top_n(20)
-
-users <- tidy(tm, matrix = "gamma") 
-users %>% group_by(document) %>% summarize(total = sum(gamma))
-
-top10users <- users %>% 
-  group_by(document) %>% 
-  filter(gamma > 0.975) %>% 
-  arrange(desc(gamma)) 
-
-toptopics.in.comm <- left_join(nodes, top10users, by = c("screen_name" = "document"))
-toptopics.in.comm <- toptopics.in.comm %>% filter(!is.na(gamma))
-
-c1.topuserstpics <- toptopics.in.comm %>% filter(community == 1) %>% 
-  group_by(topic) %>% count()
-c2.topuserstpics <- toptopics.in.comm %>% filter(community == 2) %>% 
-  group_by(topic) %>% count()
-c3.topuserstpics <- toptopics.in.comm %>% filter(community == 3) %>% 
-  group_by(topic) %>% count()
-c4.topuserstpics <- toptopics.in.comm %>% filter(community == 4) %>% 
-  group_by(topic) %>% count()
-c5.topuserstpics <- toptopics.in.comm %>% filter(community == 5) %>% 
-  group_by(topic) %>% count()
-c6.topuserstpics <- toptopics.in.comm %>% filter(community == 6) %>% 
-  group_by(topic) %>% count()
-c7.topuserstpics <- toptopics.in.comm %>% filter(community == 7) %>% 
-  group_by(topic) %>% count()
-c8.topuserstpics <- toptopics.in.comm %>% filter(community == 8) %>% 
-  group_by(topic) %>% count()
-c9.topuserstpics <- toptopics.in.comm %>% filter(community == 9) %>% 
-  group_by(topic) %>% count()
-c10.topuserstpics <- toptopics.in.comm %>% filter(community == 10) %>% 
-  group_by(topic) %>% count()
-c11.topuserstpics <- toptopics.in.comm %>% filter(community == 11) %>% 
-  group_by(topic) %>% count()
-c12.topuserstpics <- toptopics.in.comm %>% filter(community == 12) %>% 
-  group_by(topic) %>% count()
-
-
-# MODEL-----
-#combine users/gamma with the user data, then run a model 
-
-topic18 <- users %>% filter(topic == 18, document != "")
-df.18 <- left_join(topic18, nodes, by = c("document" = "screen_name"))
-
-fit18 <- lmer(topic18$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.18)
-summary(fit18) # community explains most of the variance; fixef only .029
-coef(fit18) # community 3, 4 and 6; europe; even across types
-ranef(fit18)
-
-topic19 <- users %>% filter(topic == 19, document != "")
-df.19 <- left_join(topic19, nodes, by = c("document" = "screen_name"))
-
-fit19 <- lmer(topic19$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.19)
-summary(fit19) # community explaining much more of the variance here; a little more populat fixef .09
-coef(fit19) # media much more likely to be talking about this kind of cc; community 4 and 6; northeast and west
-ranef(fit19)
-
-topic38 <- users %>% filter(topic == 38, document != "")
-df.38 <- left_join(topic38, nodes, by = c("document" = "screen_name"))
-
-fit38 <- lmer(topic38$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.38)
-summary(fit38) # int is .02; community still most explanatory, then location then id
-coef(fit38) # community 11
-ranef(fit38)
-
-# Diversity: 16, 35, 47
-
-topic16 <- users %>% filter(topic == 16, document != "")
-df.16 <- left_join(topic16, nodes, by = c("document" = "screen_name"))
-
-fit16 <- lmer(topic16$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.16)
-summary(fit16) 
-coef(fit16) 
-ranef(fit16)
-
-topic35 <- users %>% filter(topic == 35, document != "")
-df.35 <- left_join(topic35, nodes, by = c("document" = "screen_name"))
-
-fit35 <- lmer(topic35$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.35)
-summary(fit35) 
-coef(fit35) 
-ranef(fit35)
-
-topic47 <- users %>% filter(topic == 47, document != "")
-df.47 <- left_join(topic47, nodes, by = c("document" = "screen_name"))
-
-fit47 <- lmer(topic47$gamma ~ (1|community) + (1|id_) + (1|location_gen), data = df.47)
-summary(fit47) # int is .02; community still most explanatory, then location then id
-coef(fit47) # community 11
-ranef(fit47)
 
 
 # COMMUNITY EDGE AND NOSELIST CREATION ----

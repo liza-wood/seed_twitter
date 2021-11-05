@@ -43,7 +43,9 @@ anti <- data.frame(anti,
                    location_gen = NA)
 
 nodes <- rbind(nodes, anti)
+topic.us <- fread("~/Box/seed_twitter/data/users.wide.csv")
 
+nodes <- left_join(nodes, topic.us, by = c("screen_name" = "name"))
 
 # EXPORT TO GEPHI ----
 Gephi.edges <- edges
@@ -85,16 +87,19 @@ nodes.c11 <- nodes.c; edges.c11.long <- edges.c.long; edges.c11 <- edges.c
 extract_community(12)
 nodes.c12 <- nodes.c; edges.c12.long <- edges.c.long; edges.c12 <- edges.c
 
-i = 6
-nodes.c <- nodes %>% filter(community == i) %>% 
-    select(screen_name, community, id_, location_gen, bio)
-edges$c <- ifelse(edges$Source %in% nodes.c$screen_name & 
-                      edges$Target %in% nodes.c$screen_name, T, F)
-edges.c.long <- edges %>% filter(c == T) 
-edges.c <- edges.c.long %>% select(Source, stripped_text)
+## I think this is what the function was based on, above
+#i = 1
+#nodes.c <- nodes %>% filter(community == i) %>% 
+#    select(screen_name, community, id_, location_gen, bio)
+#edges$c <- ifelse(edges$Source %in% nodes.c$screen_name & 
+#                      edges$Target %in% nodes.c$screen_name, T, F)
+#edges.c.long <- edges %>% filter(c == T) 
+#edges.c <- edges.c.long %>% select(Source, stripped_text)
+#
+#nodes.c1 <- nodes.c
+#edges.c1.long <- edges.c.long
 
-nodes.c6 <- nodes.c
-edges.c6.long <- edges.c.long
+
 
 # GRAPH EACH COMMUNITY
 lightred <- "#E74C3C" ; darkred <- "#A93226"; lightor <- "#E67E22"; darkor <- "#BA4A00"; yellow <- "#D4AC0D"; darkgrn <- "#1E8449"; medgrn <- "#28B463"; lightgrn <- "#58D68D"; darkbl <- "#1F618D"; lightbl <- "#2E86C1"; lightprpl <- "#AF7AC5"; darkgry <- "#707B7C"; lightgry <- "#BFC9CA"
@@ -181,6 +186,13 @@ V(net)$geo_color <- ifelse(is.na(V(net)$location_gen), "#FCF3CF",
                     ifelse(V(net)$location_gen == "South America", "#CCD1D1",
                      "#FCF3CF")))))))))))
 
+summary(V(net)$topic)
+V(net)$adapt.topic.color <- ifelse(is.na(V(net)$topic18), lightgry,
+                            ifelse(V(net)$topic18 > 0.5 | V(net)$topic19 > 0.5 |
+                                     V(net)$topic35 > 0.5 | V(net)$topic47 > 0.5, 
+                                   darkbl, lightgry))
+
+V(net)$adapt.alpha <- ifelse(V(net)$adapt.topic.color == darkbl, 0.9, 0.1)
 
 indeg <- igraph::degree(net, mode="in")
 outdeg <- igraph::degree(net, mode="out")
@@ -198,9 +210,13 @@ p <- ggraph(net, layout = 'lgl') +
   theme_void() +
   labs(title = "C10") ; p
 
+p +
+  geom_node_point(color = V(net)$adapt.topic.color, size= V(net)$size, alpha = V(net)$adapt.alpha) +
+  labs(title = "C10 Adapt topics") 
+
 p + 
   geom_node_point(color = V(net)$id_color, size= V(net)$size) +
-  labs(title = "C10 Roles") 
+  labs(title = "C3 Roles") 
 
 p + 
   geom_node_point(color = V(net)$geo_color, size= V(net)$size) +
@@ -316,9 +332,12 @@ fwrite(degrees, "~/Box/seed_twitter/data/community.degrees.csv")
 
 
 
+## COMBINE TOPICS WITH COMMUNITY
+# Make topic probability a color
 
 
 
+#########################################################
 
 
 

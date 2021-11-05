@@ -3,6 +3,7 @@ library(dplyr)
 library(tidyverse)
 library(textstem)
 library(class)
+library(data.table)
 
 
 # Take a look at these to see high degrees classification in Gephi
@@ -182,6 +183,8 @@ topn <- function(topn){
    dtm_id[,-c(1,2)][is.na(dtm_id[,-c(1,2)])] <- 0
    assign("dtm_id", dtm_id, envir = .GlobalEnv)
 }
+
+topn(50)
 
 # Training and classification assignment ----
 # Divide the dtm into a training set and a classification set
