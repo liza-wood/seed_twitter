@@ -25,5 +25,3 @@ I read in the csv with the assigned IDs. In this case, because I assigned IDs fr
 This script takes the location names identified in Twitter profiles and iteratively assigns locations from dictionaries of major cities and countries around the world.
 
 **7_text_analysis.R**
-
-T
