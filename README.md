@@ -1,3 +1,5 @@
+A repository outlining the steps in scraping tweets from the Twitter API, plotting and analyzing networks based on retweets and mentions, and analyzing text data.
+
 **1_edgelist_creation.R**
 
 Identifies followers and followees of ASTA (@better_seed) to create a list of 3,295 accounts, which is then used to pull all tweets from those users on January 26, 2020. These Tweets are then limited to be between 2018-2020 for full Twitter histories of users (given Twitter API's limit of 3200 tweets per user), and then the text of the tweets was cleaned. An edgelist was then created using the tweet and mention data, resulting in `10.31.20.ASTAretweetandmention.edgelist.recent.csv`
@@ -12,14 +14,16 @@ Filters for only the agriculture related tweets, and then tests the community wa
 
 **4_nodelist_creation.R**
 
-Because the edgelist is made up of many more users than the original sample, I need to again pull their information to get the bios and location information of the users. I will use the user_id, which is less prone to changing than screennames. Once I have this information, I can assign names to the user ids based on the list, which I can then use to overwrite future lists for ease. 
-
-Lastly, I download this nodelist and have assigned roles of those with high degree (according to Gephi, for now), and save this with a new extension.
+Because the edgelist is made up of many more users than the original sample, I need to again pull their information to get the bios and location information of the users. Once I have this information, I can assign names to the user ids based on the list, which I can then use to overwrite future lists for ease. 
 
 **5_bio_classification.R**
 
-I read in the csv with the assigned IDs. In this case, because I assigned IDs from an old list, I will join it with my new list. In this process, there is only a very small difference. I am then able to run the knn algorithm to try to train my assignments. 
+I read in the csv with the assigned IDs. In this case, because I assigned IDs from an old list, I will join it with my new list. In this process, there is only a very small difference. I am then able to run the knn algorithm to try to train my assignments. This classification approach is in process.
 
-**6_text_analysis.R**
+**6_location_matching.R**
 
-The data I have now includes: Network of the top X communities, each with a bio, as assigned identity
+This script takes the location names identified in Twitter profiles and iteratively assigns locations from dictionaries of major cities and countries around the world.
+
+**7_text_analysis.R**
+
+T
